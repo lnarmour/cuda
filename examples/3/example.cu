@@ -17,13 +17,6 @@ __global__ void add(int *a, int *b, int *c) {
 #define N 512
 #define MAX_INT 500
 
-int random_ints(int* array, int N) {
-	for (int i=0; i<N; i++) {
-		array[i] = rand() % MAX_INT + 1;
-	}
-	return 0;
-}
-
 int main(void) {
 	int *a, *b, *c;             // host copies of a, b, c
 	int *d_a, *d_b, *d_c;    // device copies
@@ -37,26 +30,22 @@ int main(void) {
 	a = (int *)malloc(size);
 	b = (int *)malloc(size);
 	c = (int *)malloc(size);
-	random_ints(a, N);
-	random_ints(b, N);
+	for (int i=0; i<N; i++) {
+		a[i] = rand() % MAX_INT + 1;
+		b[i] = rand() % MAX_INT + 1;
+	}
 
 	// copy inputs to device
-	cudaMemcpy(d_a, &a, size, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_b, &b, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_b, b, size, cudaMemcpyHostToDevice);
 
 	// launch add() kernel on CPU
-	add<<<1,1>>>(d_a, d_b, d_c);
+	add<<<N,1>>>(d_a, d_b, d_c);
 
 	// copy result back to host
-	cudaMemcpy(&c, d_c, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(c, d_c, size, cudaMemcpyDeviceToHost);
 
 	for (int i=0; i<N; i++) {
-		if (i == 11) {
-			printf("...\n");
-		}
-		if (10 < i < N-1) {			
-			continue;
-		}
 		printf("a[%d] = %d, b[%d] = %d, c[%d] = %d\n", i, a[i], i, b[i], i, c[i]);
 
 	}
