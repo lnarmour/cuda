@@ -25,9 +25,15 @@ __global__ void stencil(int *in, int *out) {
 	// read input elements in shared memory
 	temp[local_index] = in[global_index];
 	if (threadIdx.x < RADIUS) {
-		temp[local_index - RADIUS] = in[global_index - RADIUS];
-		temp[local_index + BLOCK_SIZE] = in[global_index + BLOCK_SIZE];
+		int i = global_index - RADIUS;
+		temp[local_index - RADIUS] = i>=0 ? in[i] : 0;
+
+		i = global_index + BLOCK_SIZE;
+		temp[local_index + BLOCK_SIZE] = i<N ? in[i] : 0;
 	}
+
+	// synchronize (ensure all data is available
+	__syncthreads();
 
 	// apply the stencil
 	int result = 0;
@@ -67,8 +73,8 @@ int main(void) {
 
 	for (int i=0; i<N; i++) {
 		printf("a[%d] = %d, b[%d] = %d\n", i, a[i], i, b[i]);
-		if (i == 20) {
-			printf("\n...only displaying first 20 indices\n\n");
+		if (i == 50) {
+			printf("\n...only displaying first 50 indices\n\n");
 			break;
 		}
 	}
