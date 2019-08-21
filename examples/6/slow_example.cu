@@ -19,33 +19,11 @@ Stencil kernel example - better illustrates when using more than 1 thread per bl
 #define BLOCK_SIZE (N / THREADS_PER_BLOCK)
 
 __global__ void stencil(int *in, int *out) {
-
-	__shared__ int temp[BLOCK_SIZE + 2 * RADIUS];
-	int global_index = threadIdx.x + blockIdx.x * blockDim.x;
-	int local_index = threadIdx.x + RADIUS;
-
-	// read input elements in shared memory
-	temp[local_index] = in[global_index];
-	if (threadIdx.x < RADIUS) {
-		int i = global_index - RADIUS;
-		temp[local_index - RADIUS] = i>=0 ? in[i] : 0;
-
-		i = global_index + BLOCK_SIZE;
-		temp[local_index + BLOCK_SIZE] = i<N ? in[i] : 0;
-	}
-
-	// synchronize (ensure all data is available
-	__syncthreads();
-
-	// apply the stencil
 	int result = 0;
 	for (int offset=-RADIUS; offset<=RADIUS; offset++) {
-		result += temp[local_index + offset];
+		result += in[blockIdx.x];
 	}
-
-	// store the result
-	out[global_index] = result;
-
+	out[blockIdx.x] = result;
 }
 
 
@@ -76,7 +54,7 @@ int main(void) {
 	cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
 
 	// launch stencil() kernel on GPU
-	stencil<<<BLOCK_SIZE,THREADS_PER_BLOCK>>>(d_a, d_b);
+	stencil<<<N,1>>>(d_a, d_b);
 
 	// copy result back to host
 	cudaMemcpy(b, d_b, size, cudaMemcpyDeviceToHost);
